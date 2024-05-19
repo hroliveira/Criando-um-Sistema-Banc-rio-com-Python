@@ -8,8 +8,14 @@
 [Repo trilha-python-dio](https://github.com/digitalinnovationone/trilha-python-dio)
 
 #### Branch desafio-sistema-bancario
-[desafio-sistema-bancario]()
+[desafio-sistema-bancario](https://github.com/hroliveira/Criando-um-Sistema-Bancario-com-Python/tree/desafio-sistema-bancario)
 
+
+#### Branch otimizando-sistema-bancario
+[otimizando-sistema-bancario](https://github.com/hroliveira/Criando-um-Sistema-Bancario-com-Python/tree/otimizando-sistema-bancario)
+
+#### Branch sistema-bancario-poo
+[sistema-bancario-poo]()
 
 ## 💻 Tecnologia
 <img align="center" alt="Python" src="https://img.shields.io/badge/Python-14354C?style=for-the-badge&logo=python&logoColor=white" />
