@@ -1,6 +1,20 @@
+import os
 import textwrap
 from abc import ABC, abstractmethod
+import csv
 from datetime import datetime, timezone
+from pathlib import Path
+
+# Define the root path and data directory
+ROOT_PATH = Path(__file__).parent
+DATA_DIR = ROOT_PATH / "dados"
+
+# Ensure the data directory exists
+DATA_DIR.mkdir(exist_ok=True)
+
+# Define paths for the log and CSV files
+LOG_FILE_PATH = DATA_DIR / "log.txt"
+CSV_FILE_PATH = DATA_DIR / "dados_clientes.csv"
 
 class ContaIterador:
     def __init__(self, contas):
@@ -43,6 +57,9 @@ class PessoaFisica(Cliente):
         self.nome = nome
         self.data_nascimento = data_nascimento
         self.cpf = cpf
+    
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__}:('{self.nome}','{self.cpf}')>"
 
 class Conta:
     def __init__(self, numero, cliente):
@@ -128,6 +145,9 @@ class ContaCorrente(Conta):
 
         return False
 
+    def __repr__(self):
+        return f"""<{self.__class__.__name__}: ('{self.agencia}', '{self.numero}', '{self.cliente.nome}')>"""
+           
     def __str__(self):
         return f"""\
             Agência:\t{self.agencia}
@@ -201,12 +221,14 @@ class Deposito(Transacao):
             conta.historico.adicionar_transacao(self)
 
 def log_transacao(func):
-    def wrapper(*args, **kwargs):
-        print(f"Log: Iniciando {func.__name__}")
+    def envelope(*args, **kwargs):
         resultado = func(*args, **kwargs)
-        print(f"{datetime.now()}: {func.__name__.upper()} concluído.")
+        data_hora = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        log_entry = f"[{data_hora}] Função '{func.__name__}' executada com argumentos {args} e {kwargs}. Retornou {resultado}\n"
+        with open(LOG_FILE_PATH, "a") as log_file:
+            log_file.write(log_entry)
         return resultado
-    return wrapper
+    return envelope
 
 def menu():
     menu = """\n
@@ -357,9 +379,35 @@ def listar_contas(contas):
         print("=" * 100)
         print(textwrap.dedent(str(conta)))
 
-def main():
+def salvar_dados(clientes, contas):
+    with open(CSV_FILE_PATH, "w", newline='') as csvfile:
+        writer = csv.writer(csvfile)
+        writer.writerow(["cpf", "nome", "data_nascimento", "endereco", "conta_numero", "conta_agencia", "conta_saldo"])
+        for cliente in clientes:
+            for conta in cliente.contas:
+                writer.writerow([cliente.cpf, cliente.nome, cliente.data_nascimento, cliente.endereco, conta.numero, conta.agencia, conta.saldo])
+
+def carregar_dados():
     clientes = []
     contas = []
+    try:
+        with open(CSV_FILE_PATH, "r") as csvfile:
+            reader = csv.DictReader(csvfile)
+            for row in reader:
+                cliente = filtrar_cliente(row['cpf'], clientes)
+                if not cliente:
+                    cliente = PessoaFisica(nome=row['nome'], data_nascimento=row['data_nascimento'], cpf=row['cpf'], endereco=row['endereco'])
+                    clientes.append(cliente)
+                conta = ContaCorrente(numero=row['conta_numero'], cliente=cliente)
+                conta._saldo = float(row['conta_saldo'])
+                cliente.contas.append(conta)
+                contas.append(conta)
+    except FileNotFoundError:
+        print("Arquivo de dados não encontrado. Iniciando com dados vazios.")
+    return clientes, contas
+
+def main():
+    clientes, contas = carregar_dados()
 
     while True:
         opcao = menu()
@@ -384,6 +432,7 @@ def main():
             criar_cliente(clientes)
 
         elif opcao == "0":
+            salvar_dados(clientes, contas)
             break
 
         else:
